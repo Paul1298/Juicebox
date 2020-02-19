@@ -143,6 +143,8 @@ public class CLTFactory {
             return new APAvsDistance();
         } else if (cmd.equals("afa")) { //added command for afa
             return new AFA ();
+        } else if (cmd.equals("chrom-count")) {
+            return new ChromosomeCalculation();
         }
 
         return null;

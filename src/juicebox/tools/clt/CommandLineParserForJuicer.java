@@ -107,7 +107,7 @@ public class CommandLineParserForJuicer extends CommandLineParser {
                 || cmd.equals("cluster") || cmd.equals("compare") || cmd.equals("loop_domains")
                 || cmd.equals("hiccupsdiff") || cmd.equals("ab_compdiff") || cmd.equals("genes")
                 || cmd.equals("apa_vs_distance") || cmd.equals("drink") || cmd.equals("drinks")
-                || cmd.equals("shuffle") || cmd.equals("grind");
+                || cmd.equals("shuffle") || cmd.equals("grind") || cmd.equals("chrom-count");
     }
 
     public int getGrindDataSliceOption() {

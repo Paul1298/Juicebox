@@ -52,7 +52,6 @@ import java.util.zip.Deflater;
  */
 public class Preprocessor {
 
-
     private static final int VERSION = 8;
     private static final int BLOCK_SIZE = 1000;
     public static final String HIC_FILE_SCALING = "hicFileScalingFactor";
@@ -748,7 +747,7 @@ public class Preprocessor {
                         writeMatrix(currentMatrix);
                         writtenMatrices.add(currentMatrixKey);
                         currentMatrix = null;
-                        System.gc();
+                        //System.gc();
                         //System.out.println("Available memory: " + RuntimeUtils.getAvailableMemory());
                     }
 

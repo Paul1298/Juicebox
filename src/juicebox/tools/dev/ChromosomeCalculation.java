@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2019 Broad Institute, Aiden Lab
+ * Copyright (c) 2011-2020 Broad Institute, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,9 +26,10 @@ package juicebox.tools.dev;
 
 import juicebox.HiCGlobals;
 import juicebox.data.ContactRecord;
-import juicebox.data.Dataset;
 import juicebox.data.HiCFileTools;
 import juicebox.data.MatrixZoomData;
+import juicebox.tools.clt.CommandLineParserForJuicer;
+import juicebox.tools.clt.JuicerCLT;
 import juicebox.tools.utils.common.ArrayTools;
 import org.broad.igv.feature.Chromosome;
 
@@ -38,10 +39,39 @@ import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
 import java.util.*;
 
-public class ChromosomeCalculation {
+public class ChromosomeCalculation extends JuicerCLT {
 
-    public static void sum(int resolution, int slidingWindow, String filePath, String outputFolder) {
-        ArrayList<String> files = new ArrayList<>();
+    private int resolution = 100000;
+    private String outputFolder;
+    private int slidingWindow = 5;
+
+    public ChromosomeCalculation() {
+        super("chrom-count <hicfile(s)> <NORM> <resolution> <sliding-window-width> <output-directory>");
+    }
+
+    @Override
+    protected void readJuicerArguments(String[] args, CommandLineParserForJuicer juicerParser) {
+        if (args.length != 6) {
+            printUsageAndExit();
+        }
+
+        setDatasetAndNorm(args[1], args[2], false);
+
+
+        try {
+            resolution = Integer.parseInt(args[3]);
+            slidingWindow = Integer.parseInt(args[4]);
+        } catch (NumberFormatException e) {
+            System.err.println("Integer expected for bin size.  Found: " + args[4] + ".");
+            System.exit(21);
+        }
+
+        outputFolder = args[5];
+    }
+
+    @Override
+    public void run() {
+
         File outFolder = new File(outputFolder);
         if (!outFolder.exists()) {
             outFolder.mkdir();
@@ -59,9 +89,7 @@ public class ChromosomeCalculation {
 
         HiCGlobals.useCache = false;
 
-        files.add(filePath); // replace with hic file paths
-        Dataset ds = HiCFileTools.extractDatasetForCLT(files, false); // see this class and its functions
-        Chromosome[] chromosomes = ds.getChromosomeHandler().getAutosomalChromosomesArray();
+        Chromosome[] chromosomes = dataset.getChromosomeHandler().getAutosomalChromosomesArray();
         Map<Chromosome, Map<Integer, Float>> chromosomeToColumnSumsMap = new HashMap<>();
         Map<Chromosome, Map<Integer, Float>> chromosomeToDiagonalValueMap = new HashMap<>();
 
@@ -70,7 +98,7 @@ public class ChromosomeCalculation {
             Chromosome chromosome1 = chromosomes[i];
             for (int j = i; j < chromosomes.length; j++) {
                 Chromosome chromosome2 = chromosomes[j];
-                MatrixZoomData zd = HiCFileTools.getMatrixZoomData(ds, chromosome1, chromosome2, resolution); // 1,000,000 resolution
+                MatrixZoomData zd = HiCFileTools.getMatrixZoomData(dataset, chromosome1, chromosome2, resolution); // 1,000,000 resolution
                 if (zd == null) continue;
                 // do the summing, iterate over contact records in matrixZoomData object
                 sumColumn(zd, chromosomeToColumnSumsMap, chromosomeToDiagonalValueMap, chromosome1, chromosome2);
@@ -206,4 +234,6 @@ public class ChromosomeCalculation {
             }
         }
     }
+
+
 }

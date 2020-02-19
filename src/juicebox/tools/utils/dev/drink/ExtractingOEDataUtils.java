@@ -81,7 +81,8 @@ public class ExtractingOEDataUtils {
             }
         }
         // force cleanup
-        System.gc();
+        //System.gc();
+        blocks = null;
         return data;
     }
 
