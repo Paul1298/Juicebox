@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2011-2019 Broad Institute, Aiden Lab
+ * Copyright (c) 2011-2020 Broad Institute, Aiden Lab
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -71,6 +71,8 @@ public class DatasetReaderV2 extends AbstractDatasetReader {
     private boolean activeStatus = true;
     private final AtomicBoolean useMainStream = new AtomicBoolean();
     public static double[] globalTimeDiffThings = new double[5];
+    private final CompressionUtils mainCompressionUtils = new CompressionUtils();
+    private final CompressionUtils backUpCompressionUtils = new CompressionUtils();
 
     @Override
     public Dataset read() throws IOException {
@@ -165,6 +167,7 @@ public class DatasetReaderV2 extends AbstractDatasetReader {
 
             // Now we need to skip  through stream reading # fragments, stream on buffer is not needed so null it to
             // prevent accidental use
+            dis.close();
             dis = null;
             if (nFragResolutions > 0) {
                 stream.seek(position);
@@ -589,8 +592,6 @@ public class DatasetReaderV2 extends AbstractDatasetReader {
         return blockIndex == null ? null : new ArrayList<>(blockIndex.keySet());
     }
 
-    private final CompressionUtils mainCompressionUtils = new CompressionUtils();
-    private final CompressionUtils backUpCompressionUtils = new CompressionUtils();
 
     @Override
     public void close() {
@@ -644,29 +645,6 @@ public class DatasetReaderV2 extends AbstractDatasetReader {
         else return new NormalizationVector(type, chrIdx, unit, binSize, values);
     }
 
-    private byte[] seekAndFullyReadCompressedBytes(Preprocessor.IndexEntry idx) throws IOException {
-
-        boolean currentlyUseMainStream;
-        byte[] compressedBytes = new byte[idx.size];
-
-        synchronized (useMainStream) {
-            currentlyUseMainStream = useMainStream.get();
-            useMainStream.set(!currentlyUseMainStream);
-        }
-
-        if (currentlyUseMainStream) {
-            synchronized (stream) {
-                stream.seek(idx.position);
-                stream.readFully(compressedBytes);
-            }
-        } else {
-            synchronized (backUpStream) {
-                backUpStream.seek(idx.position);
-                backUpStream.readFully(compressedBytes);
-            }
-        }
-        return compressedBytes;
-    }
 
     @Override
     public Block readNormalizedBlock(int blockNumber, MatrixZoomData zd, NormalizationType no) throws IOException {
@@ -829,6 +807,30 @@ public class DatasetReaderV2 extends AbstractDatasetReader {
             b = new Block(blockNumber, zd.getBlockKey(blockNumber, NormalizationHandler.NONE));
         }
         return b;
+    }
+
+    private byte[] seekAndFullyReadCompressedBytes(Preprocessor.IndexEntry idx) throws IOException {
+
+        boolean currentlyUseMainStream;
+        byte[] compressedBytes = new byte[idx.size];
+
+        synchronized (useMainStream) {
+            currentlyUseMainStream = useMainStream.get();
+            useMainStream.set(!currentlyUseMainStream);
+        }
+
+        if (currentlyUseMainStream) {
+            synchronized (stream) {
+                stream.seek(idx.position);
+                stream.readFully(compressedBytes);
+            }
+        } else {
+            synchronized (backUpStream) {
+                backUpStream.seek(idx.position);
+                backUpStream.readFully(compressedBytes);
+            }
+        }
+        return compressedBytes;
     }
 
     private byte[] decompress(byte[] compressedBytes) {
